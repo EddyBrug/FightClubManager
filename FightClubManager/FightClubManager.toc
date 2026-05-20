@@ -1,0 +1,8 @@
+## Interface: 11200
+## Title: Fight Club Manager
+## Notes: Gère les paris et l'auto-remplissage pour le Fight Club (Version 1.12.1).
+## Author: Toi
+## Version: 1.0
+## SavedVariables: FCM_Database
+
+FightClubManager.lua

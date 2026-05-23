@@ -21,14 +21,20 @@ eventFrame:SetScript("OnEvent", function()
     if not FCM_Database.lang then
         FCM_Database.lang = "fr"
     end
-    
+    if not FCM_Database.scale then
+        FCM_Database.scale = 1.0
+    end
+    if FCM_Database.silentMode == nil then
+        FCM_Database.silentMode = false
+    end
+
     DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00" .. (FCM_L and FCM_L("MSG_LOADED") or "Fight Club Manager loaded!"))
 end)
 
 ----------------------------------------------------
 -- TRADUCTIONS (LOCALIZATION)
 ----------------------------------------------------
-local FCM_Locales = {
+FCM_Locales = { -- Changed to global
     fr = {
         BTN_TARGET_A = "Cibler A",
         BTN_TARGET_B = "Cibler B",
@@ -70,10 +76,18 @@ local FCM_Locales = {
         ERROR_MAILBOX_CLOSED = "Vous devez ouvrir une boîte aux lettres en jeu d'abord !",
         ERROR_NOT_ENOUGH_MONEY = "Fonds insuffisants pour envoyer %s (+ 30c frais).",
         MAIL_SUBJECT = "Fight Club - Vos gains !",
+        MAIL_BODY_FIGHTER = "Félicitations pour ton combat ! Tu as fait couler le sang avec honneur. Voici ta part du gâteau bien méritée.\n\nÀ bientôt dans l'arène !",
+        MAIL_BODY_BETTOR = "Félicitations ! Votre flair a payé. Voici vos gains pour votre pari gagnant au Ravenholdt Fight Club.\n\nMerci de votre confiance et à bientôt pour le prochain duel !",
         INFO_MAIL_READY = "Courrier préparé pour %s (%s). Cliquez sur Envoyer !",
         SUCCESS_TREASURY_RESET = "La trésorerie a été remise à zéro.",
         SUCCESS_ALL_PAID = "Tous les gains de l'historique ont été payés !",
         SUCCESS_HISTORY_CLEARED_PAID = "Historique nettoyé (%d match(s) effacé(s)). Les matchs avec des gains non payés ont été conservés.",
+        BTN_EXPORT_TREASURY = "Exporter en Guilde",
+        BTN_SET_MOTD = "Mise à jour MOTD",
+        MSG_MOTD_TREASURY = "Trésorerie Fight Club : %s",
+        MSG_SILENT_ON = "Annonces addon : |cffff0000DESACTIVEES|r (Mode Discret)",
+        MSG_SILENT_OFF = "Annonces addon : |cff00ff00ACTIVEES|r (Mode Public)",
+        MSG_EXPORT_TREASURY = "Trésorerie du Fight Club engrangée pour la guilde : %s",
         SUCCESS_HISTORY_CLEARED_ALL = "L'historique complet des matchs a été effacé.",
         CONFIRM_DELETE_ALL_HISTORY_TEXT = "Êtes-vous sûr de vouloir effacer TOUT l'historique des matchs ?\n\n|cffff0000Cette action est irréversible et supprimera également les matchs avec des gains non payés.|r",
         SUCCESS_HOF_CLEARED = "Le Hall of Fame a été effacé.",
@@ -85,10 +99,67 @@ local FCM_Locales = {
         ERROR_ALREADY_FIGHTER_A = "Ce joueur est déjà défini comme Combattant A !",
         ERROR_TARGET_FIGHTER_B = "Ciblez le combattant B !",
         ERROR_TARGET_FOR_TRADE = "Ciblez un joueur pour lancer un échange !",
+        BTN_ANNOUNCE = "Annoncer les Cotes",
+        ANNOUNCE_ODDS_MSG = "Les paris sont ouverts ! %s (Cote: x%.2f - Mises: %s) VS %s (Cote: x%.2f - Mises: %s)",
+        ADJECTIVES = { "l'intrépide", "le féroce", "le sournois", "l'impitoyable", "le sanguinaire", "le redoutable", "le vaillant", "le cruel", "le rusé", "l'indomptable" },
+        CLASS_NAMES = { WARRIOR = "Guerrier", MAGE = "Mage", ROGUE = "Voleur", DRUID = "Druide", HUNTER = "Chasseur", SHAMAN = "Chaman", PRIEST = "Prêtre", WARLOCK = "Démoniste", PALADIN = "Paladin" },
+        INTRO_FIGHTER = "%s %s, %s (Niv. %s)",
+        ANNOUNCE_CLASSIC_VARIANTS = {
+            "Oyez, oyez ! Les paris sont ouverts pour ce duel classique ! %s affronte %s !",
+            "Mesdames et messieurs, préparez vos pièces ! Dans l'arène ce soir : %s contre %s !",
+            "Le tonnerre gronde à Ravenholdt ! Un combat épique se prépare entre %s et %s ! Faites vos jeux !",
+            "Approchez, parieurs ! Un duel de légende va commencer ! %s défie %s sous vos yeux !",
+            "Le sable de l'arène a soif ! Qui sortira vainqueur de l'affrontement entre %s et %s ? Les paris sont ouverts !",
+            "Que le meilleur gagne ! La confrontation entre %s et %s va débuter !",
+            "Les gladiateurs sont prêts, les lames sont aiguisées ! %s croise le fer avec %s !"
+        },
+        ANNOUNCE_MAKGORA_VARIANTS = {
+            "Woooaa woooaa woooaa ! Attention tout le monde, ceci est un MAK'GORA !! %s affronte %s jusqu'à la mort ! Préparez vos mises, que le sang coule !",
+            "Silence dans l'assemblée ! Un pacte de sang a été scellé ! %s et %s vont s'entretuer dans un véritable Mak'gora ! À vos bourses !",
+            "Aujourd'hui, l'un d'eux ne rentrera pas chez lui ! C'est un MAK'GORA ! %s fait face à %s ! Misez vos vies, ils misent la leur !",
+            "Les Dieux de la mort nous regardent ! Un affrontement funeste éclate entre %s et %s ! C'est un Mak'gora, les paris explosent !",
+            "Préparez les linceuls ! Aucun quartier ne sera fait ! %s contre %s dans un duel à mort ! Misez tout ce que vous avez !",
+            "C'est un aller simple pour le cimetière ! %s défie %s dans un Mak'gora implacable ! Faites vos jeux !"
+        },
+        ANNOUNCE_BETS_CLOSED_VARIANTS = {
+            "Les jeux sont faits ! Plus aucun pari ne sera accepté !",
+            "Les paris sont fermés ! Que le combat commence !",
+            "Fin des mises ! Que les Dieux de l'arène choisissent le vainqueur !",
+            "La caisse est verrouillée ! Place au sang !",
+            "Rien ne va plus ! Le registre est clos !"
+        },
+        ANNOUNCE_WIN_CLASSIC_VARIANTS = {
+            "Le combat est terminé ! %s sort victorieux de l'arène !",
+            "Quel affrontement ! Applaudissez notre grand gagnant : %s !",
+            "Fin du duel ! Les dieux de l'arène sourient à %s aujourd'hui !",
+            "C'est fait ! %s a terrassé son adversaire avec brio ! Préparez-vous à encaisser !",
+            "Le sable est retombé, l'arène a parlé ! Gloire à %s, vainqueur incontesté de ce duel !"
+        },
+        ANNOUNCE_WIN_MAKGORA_VARIANTS = {
+            "Le sang a coulé ! %s se tient debout, seul survivant de ce Mak'gora !",
+            "Un de moins dans ce monde ! %s a pris une vie et la gloire avec ! Quel carnage !",
+            "Que la terre boive le sang du vaincu ! %s remporte ce Mak'gora impitoyable !",
+            "C'est un massacre ! La mort a réclamé son dû, mais %s triomphe sur le cadavre de son ennemi !",
+            "La Faucheuse est satisfaite ! %s survit à l'épreuve du sang ! Gloire au vainqueur du Mak'gora !"
+        },
+        ANNOUNCE_NEXT_MATCH_VARIANTS = {
+            "Le sable a bu le sang ! Nettoyez l'arène, on passe au combat suivant !",
+            "Fin des paiements ! Que les prochains combattants s'avancent au centre !",
+            "Le registre est clos, les poches sont pleines ! Préparez-vous pour le prochain duel !",
+            "Évacuez le corps et faites de la place ! Au suivant !",
+            "Le Ravenholdt Fight Club vous remercie pour vos paris ! Qui sera le prochain à faire couler le sang ?"
+        },
         SUCCESS_ALL_MAIL_PREPARED = "Tous les courriers des gagnants ont été préparés !",
         TITLE_TREASURY_TAXES = "Taxes Totales Engrangées",
         TITLE_RULES_HEADER = "Les Règles du Fight Club",
-        RULES_TEXT = "|cff2095f3RÈGLE 1 :|r Il est interdit de parler du Fight Club.\n\nTu ne lances pas de message sur le canal /1. Tu ne spams pas le /2 d'Ironforge ou d'Orgrimmar. Si un MJ ou les flics te demandent ce qu'on fabrique à cinquante dans les montagnes d'Alterac, tu réponds que tu cueilles de l'Hivernale. Ce qui se passe à Ravenholdt reste à Ravenholdt.\n\n|cff2095f3RÈGLE 2 :|r Il est INTERDIT de parler du Fight Club.\n\nSi ton compagnon de quête te demande où sont passées les 50 pièces d'or de la banque de guilde, tu lances une bombe fumigène et tu fuis. Le premier qui balance un screenshot ou fait foirer la couverture servira de cible d'entraînement pour les assassins du manoir.\n\n|cff2095f3RÈGLE 3 :|r Si quelqu'un dit stop, s'agenouille ou passe l'arme à gauche, le combat s'arrête.\n\nLe nettoyage s'arrête quand le travail est fait. En duel classique, le combat prend fin à la seconde où l'un de vous tombe à 1 PV et que le perdant pose le genou au sol en signe de soumission. En mode Mak'gora, ça se termine quand l’un de vous deux libère son esprit et devient un fantôme. Notre registre valide le survivant, on ramasse les morceaux, et on passe au suivant. Pas de pitié, pas de réclamation.\n\n|cff2095f3RÈGLE 4 :|r Seulement deux personnes par combat.\n\nLe business se règle en tête-à-tête, pas en émeute. Vos familiers de classe sont tolérés si vous êtes Chasseur ou Démoniste, c'est votre gagne-pain. Pour le reste, c'est du 1v1 pur. Si on chope un pote à vous caché dans un buisson pour vous filer un coup de main ou vous soigner en douce, on vous égorge tous les deux et on jette vos corps dans les douves du manoir.\n\n|cff2095f3RÈGLE 5 :|r Un combat à la fois.\n\nOn fait les choses proprement. L'arène doit être dégagée pour que les parieurs puissent voir où part leur argent et analyser les cotes sur le registre sans loucher. On ne pollue pas la table de jeu du Syndicat. Un seul duel est géré à la fois.\n\n|cff2095f3RÈGLE 6 :|r Pas de buffs de classe extérieurs.\n\nÀ l'ancienne, on disait \\\"pas de chemise, pas de chaussures\\\". Ici, la loi est plus stricte. Tu viens avec tes propres techniques, tes potions, ton équipement et tes tripes. Si on détecte une Endurance de Prêtre ou une Bénédiction de Paladin qui n'est pas la tienne avant que le registre ne verrouille les paris, tu passes pour un lâche, et le Syndicat n'aime pas les lâches.\n\n|cff2095f3RÈGLE 7 :|r Pas de racisme, pas de sexisme, pas d'incitation à la haine (Et pas de pleureuses).\n\nOn est des truands, des hors-la-loi, mais on a des principes. Tu as le droit de provoquer et de faire du trash-talk pour chauffer la salle, mais si tu franchis la ligne, tu te fais exclure de la famille définitivement. Idem pour les rageux qui ououinent parce qu'ils ont perdu leur thune : ici, on encaisse ses gains avec le sourire et on accepte ses pertes comme un homme. Le premier qui tape un scandale servira de paillasson aux voleurs du manoir et ses PO resteront dans nos caisses.\n\n|cff2095f3RÈGLE 8 :|r Si c'est votre premier soir au Fight Club, vous devez parier et/ou vous battre.\n\nSi tu as trouvé le chemin secret, tu participes à l'économie ou au spectacle, personne ne reste les bras croisés. Soit tu sors l'or de tes poches pour miser sur un de nos poulains, soit tu trouves un type de ton calibre (écart maximum de +1 ou -1 niveau) et tu descends dans l'arène prouver ce que tu vaux. Tout le monde doit croquer ou saigner.\n\n\n|cffffd100« Suivez ces règles à la lettre. À Ravenholdt, le sang coule, l'or change de mains, mais la discipline reste absolue. Si vous brisez ce code, vous n'aurez pas à vous soucier des forces de l'ordre... mes assassins s'occuperont de vous avant l'aube. »\n\n— Fahrad, Maître de la Ligue de Ravenholdt|r",
+        RULES_TEXT = "|cff2095f3RÈGLE 1 :|r Il est interdit de parler du Fight Club.\n\nTu ne lances pas de message sur le canal /1. Tu ne spams pas le /2 d'Ironforge ou d'Orgrimmar. Si un MJ ou les flics te demandent ce qu'on fabrique à cinquante dans les montagnes d'Alterac, tu réponds que tu cueilles de l'Hivernale. Ce qui se passe à Ravenholdt reste à Ravenholdt.\n\n|cff2095f3RÈGLE 2 :|r Il est INTERDIT de parler du Fight Club.\n\nSi ton compagnon de quête te demande où sont passées les 50 pièces d'or de la banque de guilde, tu lances une bombe fumigène et tu fuis. Le premier qui balance un screenshot ou fait foirer la couverture servira de cible d'entraînement pour les assassins du manoir.\n\n|cff2095f3RÈGLE 3 :|r Si quelqu'un dit stop, s'agenouille ou passe l'arme à gauche, le combat s'arrête.\n\nLe nettoyage s'arrête quand le travail est fait. En duel classique, le combat prend fin à la seconde où l'un de vous tombe à 1 PV et que le perdant pose le genou au sol en signe de soumission. En mode Mak'gora, ça se termine quand l’un de vous deux libère son esprit et devient un fantôme. Notre registre valide le survivant, on ramasse les morceaux, et on passe au suivant. Pas de pitié, pas de réclamation.\n\n|cff2095f3RÈGLE 4 :|r Seulement deux personnes par combat.\n\nLe business se règle en tête-à-tête, pas en émeute. Vos familiers de classe sont tolérés si vous êtes Chasseur ou Démoniste, c'est votre gagne-pain. Pour le reste, c'est du 1v1 pur. Si on chope un pote à vous caché dans un buisson pour vous filer un coup de main ou vous soigner en douce, on vous égorge tous les deux et on jette vos corps dans les douves du manoir.\n\n|cff2095f3RÈGLE 5 :|r Un combat à la fois.\n\nOn fait les choses proprement. L'arène doit être dégagée pour que les parieurs puissent voir où part leur argent et analyser les cotes sur le registre sans loucher. On ne pollue pas la table de jeu de la ligue de Ravenholdt. Un seul duel est géré à la fois.\n\n|cff2095f3RÈGLE 6 :|r Pas de buffs de classe extérieurs.\n\nÀ l'ancienne, on disait \\\"pas de chemise, pas de chaussures\\\". Ici, la loi est plus stricte. Tu viens avec tes propres techniques, tes potions, ton équipement et tes tripes. Si on détecte une Endurance de Prêtre ou une Bénédiction de Paladin qui n'est pas la tienne avant que le registre ne verrouille les paris, tu passes pour un lâche, et le Ravenholdt Fight Club n'aime pas les lâches.\n\n|cff2095f3RÈGLE 7 :|r Pas de racisme, pas de sexisme, pas d'incitation à la haine (Et pas de pleureuses).\n\nOn est des truands, des hors-la-loi, mais on a des principes. Tu as le droit de provoquer et de faire du trash-talk pour chauffer la salle, mais si tu franchis la ligne, tu te fais exclure de la famille définitivement. Idem pour les rageux qui ououinent parce qu'ils ont perdu leur thune : ici, on encaisse ses gains avec le sourire et on accepte ses pertes comme un homme. Le premier qui tape un scandale servira de paillasson aux voleurs du manoir et ses PO resteront dans nos caisses.\n\n|cff2095f3RÈGLE 8 :|r Si c'est votre premier soir au Fight Club, vous devez parier et/ou vous battre.\n\nSi tu as trouvé le chemin secret, tu participes à l'économie ou au spectacle, personne ne reste les bras croisés. Soit tu sors l'or de tes poches pour miser sur un de nos poulains, soit tu trouves un type de ton calibre (écart maximum de +1 ou -1 niveau) et tu descends dans l'arène prouver ce que tu vaux. Tout le monde doit croquer ou saigner.\n\n\n|cffffd100« Suivez ces règles à la lettre. À Ravenholdt, le sang coule, l'or change de mains, mais la discipline reste absolue. Si vous brisez ce code, vous n'aurez pas à vous soucier des forces de l'ordre... mes assassins s'occuperont de vous avant l'aube. »\n\n— Fahrad, Maître de la Ligue de Ravenholdt|r",
+        BTN_OPEN_EVENT = "Ouvrir l'événement",
+        BTN_CLOSE_EVENT = "Clôturer l'événement",
+        MSG_OPEN_EVENT_1 = "Bienvenue au Ravenholdt Fight Club ! Avant le sang, rappel des règles : 1. On ne parle pas du Fight Club. 2. ON NE PARLE PAS du FC.",
+        MSG_OPEN_EVENT_2 = "3. Arrêt si mort/soumission. 4. 1v1 pur. 5. Un combat à la fois. 6. Aucun buff extérieur. 7. Pas de pleureuses ni incitation à la haine.",
+        MSG_OPEN_EVENT_3 = "8. Tout le monde doit parier ou se battre ! Que le spectacle commence, préparez vos mises et aiguisez vos lames !",
+        MSG_CLOSE_EVENT_1 = "L'événement est terminé ! Merci aux gladiateurs pour leur sang et aux parieurs pour leur or ! Prochain événement : dimanche (20h-21h) dans 15 jours.",
+        MSG_CLOSE_EVENT_2 = "Et n'oubliez jamais la première règle... Il est strictement interdit de parler du Fight Club. Dispersez-vous en silence.",
         HOF_CLASSIC_HEADER = "|cff00ff00Combats Classiques|r",
         HOF_MAKGORA_HEADER = "|cffff0000Combats Mak'gora|r",
         HOF_NO_CHAMPION = "Aucun champion enregistré.",
@@ -146,10 +217,18 @@ local FCM_Locales = {
         ERROR_MAILBOX_CLOSED = "You must open a mailbox in-game first!",
         ERROR_NOT_ENOUGH_MONEY = "Insufficient funds to send %s (+ 30c fee).",
         MAIL_SUBJECT = "Fight Club - Your winnings!",
+        MAIL_BODY_FIGHTER = "Congratulations on your fight! You shed blood with honor. Here is your well-deserved share of the cake.\n\nSee you soon in the arena!",
+        MAIL_BODY_BETTOR = "Congratulations! Your intuition paid off. Here are your winnings for your successful bet at the Ravenholdt Fight Club.\n\nThank you for your trust and see you at the next duel!",
         INFO_MAIL_READY = "Mail prepared for %s (%s). Click Send!",
         SUCCESS_TREASURY_RESET = "The treasury has been reset to zero.",
         SUCCESS_ALL_PAID = "All winnings from the history have been paid!",
         SUCCESS_HISTORY_CLEARED_PAID = "History cleaned up (%d match(es) cleared). Matches with unpaid winnings have been kept.",
+        BTN_EXPORT_TREASURY = "Export to Guild",
+        BTN_SET_MOTD = "Update MOTD",
+        MSG_MOTD_TREASURY = "Fight Club Treasury: %s",
+        MSG_SILENT_ON = "Addon Announcements: |cffff0000OFF|r (Secret Mode)",
+        MSG_SILENT_OFF = "Addon Announcements: |cff00ff00ON|r (Public Mode)",
+        MSG_EXPORT_TREASURY = "Fight Club Treasury collected for the guild: %s",
         SUCCESS_HISTORY_CLEARED_ALL = "The entire match history has been cleared.",
         CONFIRM_DELETE_ALL_HISTORY_TEXT = "Are you sure you want to clear the ENTIRE match history?\n\n|cffff0000This action is irreversible and will also delete matches with unpaid winnings.|r",
         SUCCESS_HOF_CLEARED = "The Hall of Fame has been cleared.",
@@ -161,10 +240,67 @@ local FCM_Locales = {
         ERROR_ALREADY_FIGHTER_A = "This player is already set as Fighter A!",
         ERROR_TARGET_FIGHTER_B = "Target fighter B!",
         ERROR_TARGET_FOR_TRADE = "Target a player to initiate a trade!",
+        BTN_ANNOUNCE = "Announce Odds",
+        ANNOUNCE_ODDS_MSG = "Bets are open! %s (Odds: x%.2f - Bets: %s) VS %s (Odds: x%.2f - Bets: %s)",
+        ADJECTIVES = { "the fearless", "the fierce", "the sneaky", "the ruthless", "the bloodthirsty", "the formidable", "the valiant", "the cruel", "the cunning", "the indomitable" },
+        CLASS_NAMES = { WARRIOR = "Warrior", MAGE = "Mage", ROGUE = "Rogue", DRUID = "Druid", HUNTER = "Hunter", SHAMAN = "Shaman", PRIEST = "Priest", WARLOCK = "Warlock", PALADIN = "Paladin" },
+        INTRO_FIGHTER = "%s %s, %s (Lvl. %s)",
+        ANNOUNCE_CLASSIC_VARIANTS = {
+            "Hear ye, hear ye! Bets are open for this classic duel! %s faces %s!",
+            "Ladies and gentlemen, ready your coins! In the arena tonight: %s against %s!",
+            "Thunder rumbles in Ravenholdt! An epic battle is brewing between %s and %s! Place your bets!",
+            "Gather 'round, bettors! A legendary duel is about to begin! %s challenges %s right before your eyes!",
+            "The arena sand is thirsty! Who will emerge victorious between %s and %s? Bets are open!",
+            "May the best win! The showdown between %s and %s is about to start!",
+            "The gladiators are ready, the blades are sharpened! %s clashes with %s!"
+        },
+        ANNOUNCE_MAKGORA_VARIANTS = {
+            "Whoooa whoooa whoooa! Attention everyone, this is a MAK'GORA!! %s faces %s to the death! Place your bets, let the blood spill!",
+            "Silence in the hall! A blood pact has been sealed! %s and %s will fight to the death in a true Mak'gora! Get your purses ready!",
+            "Today, one of them isn't going home! This is a MAK'GORA! %s takes on %s! Bet your lives, they are betting theirs!",
+            "The Gods of death are watching! A fatal clash erupts between %s and %s! It's a Mak'gora, bets are exploding!",
+            "Prepare the shrouds! No quarter will be given! %s versus %s in a duel to the death! Bet everything you have!",
+            "It's a one-way ticket to the graveyard! %s challenges %s in a relentless Mak'gora! Place your bets!"
+        },
+        ANNOUNCE_BETS_CLOSED_VARIANTS = {
+            "Bets are closed! No more wagers will be accepted!",
+            "Betting is over! Let the fight begin!",
+            "No more bets! May the Gods of the arena choose the victor!",
+            "The vault is locked! Time for blood!",
+            "All bets are off! The ledger is closed!"
+        },
+        ANNOUNCE_WIN_CLASSIC_VARIANTS = {
+            "The fight is over! %s emerges victorious from the arena!",
+            "What a clash! Give a round of applause for our grand winner: %s!",
+            "Duel ended! The arena gods smile upon %s today!",
+            "It is done! %s has brilliantly struck down their opponent! Get ready to cash in!",
+            "The dust has settled, the arena has spoken! Glory to %s, undisputed winner of this duel!"
+        },
+        ANNOUNCE_WIN_MAKGORA_VARIANTS = {
+            "Blood has been spilled! %s stands tall, the sole survivor of this Mak'gora!",
+            "One less soul in this world! %s has taken a life and the glory with it! What carnage!",
+            "Que the earth drink the blood of the defeated! %s wins this ruthless Mak'gora!",
+            "It's a massacre! Death has claimed its due, but %s triumphs over the corpse of their enemy!",
+            "The Reaper is satisfied! %s survives the trial of blood! Glory to the Mak'gora winner!"
+        },
+        ANNOUNCE_NEXT_MATCH_VARIANTS = {
+            "The sand has drunk the blood! Clear the arena, onto the next fight!",
+            "Payouts are done! Next fighters, step to the center!",
+            "The ledger is closed, pockets are full! Prepare for the next duel!",
+            "Clear the body and make some room! Next up!",
+            "The Ravenholdt Fight Club thanks you for your bets! Who will be the next to spill blood?"
+        },
         SUCCESS_ALL_MAIL_PREPARED = "All winner mails have been prepared!",
         TITLE_TREASURY_TAXES = "Total Taxes Collected",
         TITLE_RULES_HEADER = "The Rules of the Fight Club",
-        RULES_TEXT = "|cff2095f3RULE 1:|r You do not talk about Fight Club.\n\nYou don't post messages in the /1 channel. You don't spam the /2 chat in Ironforge or Orgrimmar. If a GM or the guards ask what fifty of us are doing in the Alterac Mountains, you answer that you're picking Wintersbite. What happens in Ravenholdt stays in Ravenholdt.\n\n|cff2095f3RULE 2:|r You DO NOT talk about Fight Club.\n\nIf your questing partner asks where the 50 gold pieces from the guild bank went, you throw a smoke bomb and run. The first one to post a screenshot or blow our cover will serve as target practice for the manor's assassins.\n\n|cff2095f3RULE 3:|r If someone says stop, kneels, or kicks the bucket, the fight is over.\n\nThe cleanup ends when the job is done. In a classic duel, the fight ends the second one of you drops to 1 HP and the loser takes a knee in submission. In Mak'gora mode, it ends when one of you releases their spirit and becomes a ghost. Our registry validates the survivor, we pick up the pieces, and move on to the next one. No mercy, no complaints.\n\n|cff2095f3RULE 4:|r Only two people per fight.\n\nBusiness is settled one-on-one, not in a riot. Your class pets are tolerated if you're a Hunter or Warlock; it's your livelihood. For everyone else, it's pure 1v1. If we catch a buddy of yours hiding in a bush to give you a hand or a sneaky heal, we'll slit both your throats and throw your bodies in the manor's moat.\n\n|cff2095f3RULE 5:|r One fight at a time.\n\nWe do things cleanly. The arena must be clear so bettors can see where their money is going and analyze the odds on the ledger without going cross-eyed. We don't pollute the Syndicate's gambling table. Only one duel is managed at a time.\n\n|cff2095f3RULE 6:|r No outside class buffs.\n\nIn the old days, they said \\\"no shirt, no shoes.\\\" Here, the law is stricter. You come with your own skills, your potions, your gear, and your guts. If we detect a Priest's Fortitude or a Paladin's Blessing that isn't yours before the registry locks the bets, you'll be seen as a coward, and the Syndicate doesn't like cowards.\n\n|cff2095f3RULE 7:|r No racism, no sexism, no hate speech (And no whiners).\n\nWe're thugs, outlaws, but we have principles. You're allowed to provoke and use trash-talk to hype up the crowd, but if you cross the line, you're out of the family for good. Same goes for the ragers who whine because they lost their money: here, we collect our winnings with a smile and accept our losses like a man. The first one to throw a fit will serve as a doormat for the manor's rogues, and their gold will stay in our coffers.\n\n|cff2095f3RULE 8:|r If this is your first night at Fight Club, you have to bet and/or fight.\n\nIf you found the secret path, you participate in the economy or the show; no one stands around idle. Either you pull gold from your pockets to bet on one of our contenders, or you find someone of your caliber (maximum level difference of +1 or -1) and get down in the arena to prove your worth. Everyone must either cash in or bleed.\n\n\n|cffffd100\"Follow these rules to the letter. In Ravenholdt, blood is shed, gold changes hands, but discipline remains absolute. If you break this code, you won't have to worry about law enforcement... my assassins will take care of you before dawn.\"\n\n— Fahrad, Master of the Ravenholdt League|r",
+        RULES_TEXT = "|cff2095f3RULE 1:|r You do not talk about Fight Club.\n\nYou don't post messages in the /1 channel. You don't spam the /2 chat in Ironforge or Orgrimmar. If a GM or the guards ask what fifty of us are doing in the Alterac Mountains, you answer that you're picking Wintersbite. What happens in Ravenholdt stays in Ravenholdt.\n\n|cff2095f3RULE 2:|r You DO NOT talk about Fight Club.\n\nIf your questing partner asks where the 50 gold pieces from the guild bank went, you throw a smoke bomb and run. The first one to post a screenshot or blow our cover will serve as target practice for the manor's assassins.\n\n|cff2095f3RULE 3:|r If someone says stop, kneels, or kicks the bucket, the fight is over.\n\nThe cleanup ends when the job is done. In a classic duel, the fight ends the second one of you drops to 1 HP and the loser takes a knee in submission. In Mak'gora mode, it ends when one of you releases their spirit and becomes a ghost. Our registry validates the survivor, we pick up the pieces, and move on to the next one. No mercy, no complaints.\n\n|cff2095f3RULE 4:|r Only two people per fight.\n\nBusiness is settled one-on-one, not in a riot. Your class pets are tolerated if you're a Hunter or Warlock; it's your livelihood. For everyone else, it's pure 1v1. If we catch a buddy of yours hiding in a bush to give you a hand or a sneaky heal, we'll slit both your throats and throw your bodies in the manor's moat.\n\n|cff2095f3RULE 5:|r One fight at a time.\n\nWe do things cleanly. The arena must be clear so bettors can see where their money is going and analyze the odds on the ledger without going cross-eyed. We don't pollute the Ravenholdt Fight Club's gambling table. Only one duel is managed at a time.\n\n|cff2095f3RULE 6:|r No outside class buffs.\n\nIn the old days, they said \\\"no shirt, no shoes.\\\" Here, the law is stricter. You come with your own skills, your potions, your gear, and your guts. If we detect a Priest's Fortitude or a Paladin's Blessing that isn't yours before the registry locks the bets, you'll be seen as a coward, and the Ravenholdt Fight Club doesn't like cowards.\n\n|cff2095f3RULE 7:|r No racism, no sexism, no hate speech (And no whiners).\n\nWe're thugs, outlaws, but we have principles. You're allowed to provoke and use trash-talk to hype up the crowd, but if you cross the line, you're out of the family for good. Same goes for the ragers who whine because they lost their money: here, we collect our winnings with a smile and accept our losses like a man. The first one to throw a fit will serve as a doormat for the manor's rogues, and their gold will stay in our coffers.\n\n|cff2095f3RULE 8:|r If this is your first night at Fight Club, you have to bet and/or fight.\n\nIf you found the secret path, you participate in the economy or the show; no one stands around idle. Either you pull gold from your pockets to bet on one of our contenders, or you find someone of your caliber (maximum level difference of +1 or -1) and get down in the arena to prove your worth. Everyone must either cash in or bleed.\n\n\n|cffffd100\"Follow these rules to the letter. In Ravenholdt, blood is shed, gold changes hands, but discipline remains absolute. If you break this code, you won't have to worry about law enforcement... my assassins will take care of you before dawn.\"\n\n— Fahrad, Master of the Ravenholdt League|r",
+        BTN_OPEN_EVENT = "Open Event",
+        BTN_CLOSE_EVENT = "Close Event",
+        MSG_OPEN_EVENT_1 = "Welcome to the Ravenholdt Fight Club! Before the blood, the rules: 1. You do not talk about Fight Club. 2. YOU DO NOT talk about FC.",
+        MSG_OPEN_EVENT_2 = "3. Yield or die to stop. 4. Pure 1v1. 5. One fight at a time. 6. No outside buffs. 7. No whining or hate speech.",
+        MSG_OPEN_EVENT_3 = "8. Everyone must bet or fight! Let the show begin, prepare your wagers and your blades!",
+        MSG_CLOSE_EVENT_1 = "The event is over! Thanks to gladiators for their blood and bettors for their gold! Next event: Sunday (8pm-9pm) in 15 days.",
+        MSG_CLOSE_EVENT_2 = "And never forget the first rule... It is strictly forbidden to talk about Fight Club. Disperse in silence.",
         HOF_CLASSIC_HEADER = "|cff00ff00Classic Fights|r",
         HOF_MAKGORA_HEADER = "|cffff0000Mak'gora Fights|r",
         HOF_NO_CHAMPION = "No champion recorded.",
@@ -183,7 +319,7 @@ local FCM_Locales = {
     }
 }
 
-local function FCM_L(key)
+function FCM_L(key) -- Changed to global
     local lang = (FCM_Database and FCM_Database.lang) or "fr"
     return FCM_Locales[lang][key] or key
 end
@@ -248,7 +384,7 @@ local CLASS_ICON_TCOORDS = {
     ["PALADIN"] = {0, 0.25, 0.5, 0.75}
 }
 
-local function FormaterArgent(cuivre)
+function FormaterArgent(cuivre)
     local g = math.floor(cuivre / 10000)
     local s = math.floor(math.mod(cuivre, 10000) / 100)
     local c = math.mod(cuivre, 100)
@@ -266,7 +402,33 @@ local function FormaterArgent(cuivre)
     return str
 end
 
-local function ObtenirCouleurCote(cote)
+function FormaterArgentChat(cuivre)
+    local g = math.floor(cuivre / 10000)
+    local s = math.floor(math.mod(cuivre, 10000) / 100)
+    local c = math.mod(cuivre, 100)
+    
+    local str = ""
+    if g > 0 then str = g .. "g " end
+    if s > 0 then str = str .. s .. "s " end
+    if c > 0 or str == "" then str = str .. c .. "c" end
+    
+    -- Retire l'espace final s'il y en a un
+    return string.gsub(str, " $", "")
+end
+
+function FCM_Announce(msg, channel)
+    if not FCM_Database.silentMode then
+        SendChatMessage(msg, channel)
+    end
+end
+
+function FCM_UpdateMOTD(msg)
+    if not FCM_Database.silentMode then
+        GuildSetMOTD(msg)
+    end
+end
+
+function ObtenirCouleurCote(cote)
     if cote <= 1.10 then return "00ff00"
     elseif cote <= 1.50 then return "80ff00"
     elseif cote <= 2.00 then return "ffff00"
@@ -274,7 +436,24 @@ local function ObtenirCouleurCote(cote)
     else return "ff2222" end
 end
 
-local function AjusterValeurCase(box, delta)
+function GenererIntroFighter(nom, class, level)
+    local adjs = FCM_L("ADJECTIVES")
+    local adj = "l'intrépide"
+    if type(adjs) == "table" and table.getn(adjs) > 0 then
+        adj = adjs[math.random(1, table.getn(adjs))]
+    end
+    
+    local className = class
+    local classMap = FCM_L("CLASS_NAMES")
+    if type(classMap) == "table" and classMap[class] then
+        className = classMap[class]
+    end
+    
+    local lvl = level or "??"
+    return string.format(FCM_L("INTRO_FIGHTER"), adj, nom or "Inconnu", className or "Combattant", lvl)
+end
+
+function AjusterValeurCase(box, delta)
     local val = tonumber(box:GetText()) or 0
     val = val + delta
     if val < 0 then val = 0 end
@@ -288,7 +467,9 @@ local function ResetClub()
     local ancienneTresorerie = FCM_Database.tresorerie or 0
     local ancienHistorique = FCM_Database.historique or {}
     local ancienHallOfFame = FCM_Database.hallOfFame or {}
-    FCM_Database = { parieurs = {}, totalA = 0, totalB = 0, gainsCalcules = {}, gainsPayes = {}, nomA = FCM_L("BTN_TARGET_A"), nomB = FCM_L("BTN_TARGET_B"), classA = nil, classB = nil, levelA = nil, levelB = nil, etape = 1, tresorerie = ancienneTresorerie, historique = ancienHistorique, hallOfFame = ancienHallOfFame, isMakgora = false, lang = FCM_Database.lang or "fr" }
+    local ancienneScale = FCM_Database.scale or 1.0
+    local ancienSilent = FCM_Database.silentMode or false
+    FCM_Database = { parieurs = {}, totalA = 0, totalB = 0, gainsCalcules = {}, gainsPayes = {}, nomA = FCM_L("BTN_TARGET_A"), nomB = FCM_L("BTN_TARGET_B"), classA = nil, classB = nil, levelA = nil, levelB = nil, etape = 1, tresorerie = ancienneTresorerie, historique = ancienHistorique, hallOfFame = ancienHallOfFame, isMakgora = false, lang = FCM_Database.lang or "fr", scale = ancienneScale, silentMode = ancienSilent }
     DEFAULT_CHAT_FRAME:AddMessage(FCM_L("CHAT_MSG_PREFIX") .. FCM_L("MSG_SESSION_RESET"))
     if FCM_MainFrameModelA then FCM_MainFrameModelA:ClearModel() end
     if FCM_MainFrameModelB then FCM_MainFrameModelB:ClearModel() end
@@ -302,9 +483,9 @@ local function EnregistrerPari(combattant, g, s, c)
         return
     end
 
-    local gold = tonumber(g) or 0
-    local silver = tonumber(s) or 0
-    local copper = tonumber(c) or 0
+    local gold = math.max(0, tonumber(g) or 0)
+    local silver = math.max(0, tonumber(s) or 0)
+    local copper = math.max(0, tonumber(c) or 0)
     local montantCuivre = (gold * 10000) + (silver * 100) + copper
 
     if montantCuivre <= 0 then 
@@ -334,8 +515,8 @@ local function CalculerGains(vainqueur)
     local totalGlobal = FCM_Database.totalA + FCM_Database.totalB
     local isMakgora = FCM_Database.isMakgora
     
-    local tauxTaxeTotal = isMakgora and 0.30 or 0.15
-    local tauxGuilde = isMakgora and 0.02 or 0.10
+    local tauxTaxeTotal = isMakgora and 0.33 or 0.15 -- Corrected for Mak'gora
+    local tauxGuilde = isMakgora and 0.05 or 0.10 -- Corrected for Mak'gora
     
     local taxeTotale = math.floor(totalGlobal * tauxTaxeTotal)
     local taxeGuilde = math.floor(totalGlobal * tauxGuilde)
@@ -353,6 +534,18 @@ local function CalculerGains(vainqueur)
     end
     
     DEFAULT_CHAT_FRAME:AddMessage(FCM_L("CHAT_INFO_PREFIX") .. string.format(FCM_L("INFO_VICTORY_HOF"), nomGagnant))
+
+    -- Envoi de l'annonce automatique de victoire au public
+    local variantsWin = isMakgora and FCM_L("ANNOUNCE_WIN_MAKGORA_VARIANTS") or FCM_L("ANNOUNCE_WIN_CLASSIC_VARIANTS")
+    local msgWin = string.format("Victoire de %s !", nomGagnant)
+    if type(variantsWin) == "table" and table.getn(variantsWin) > 0 then
+        local randIndex = math.random(1, table.getn(variantsWin))
+        msgWin = string.format(variantsWin[randIndex], nomGagnant)
+    end
+    FCM_Announce(msgWin, "YELL")
+    if not FCM_Database.silentMode then
+        DoEmote(isMakgora and "ROAR" or "CHEER")
+    end
 
     if totalMisesGagnantes == 0 then
         -- Si personne n'a parié sur le vainqueur, la maison garde tout (sauf la part du combattant) !
@@ -393,7 +586,7 @@ local function CalculerGains(vainqueur)
         FCM_Database.gainsCalcules[nomGagnant] = (FCM_Database.gainsCalcules[nomGagnant] or 0) + gainCombattant
     end
     
-    local pGuilde = isMakgora and "2%" or "10%"
+    local pGuilde = isMakgora and "5%" or "10%"
     local pCombattant = isMakgora and "28%" or "5%"
     DEFAULT_CHAT_FRAME:AddMessage(FCM_L("CHAT_MSG_PREFIX") .. string.format(FCM_L("INFO_VICTORY_TAX"), nomGagnant, pGuilde, FormaterArgent(taxeGuilde), pCombattant, FormaterArgent(gainCombattant)))
 
@@ -411,7 +604,7 @@ local function CalculerGains(vainqueur)
 end
 
 -- Nouvelle fonction de paiement automatisé par courrier compatible 1.12.1
-local function EnvoyerCourrierGagnant(nomGagnant, montantCuivre)
+local function EnvoyerCourrierGagnant(nomGagnant, montantCuivre, isFighter)
     if not MailFrame or not MailFrame:IsShown() then
         DEFAULT_CHAT_FRAME:AddMessage(FCM_L("CHAT_ERROR_PREFIX") .. FCM_L("ERROR_MAILBOX_CLOSED"))
         return false
@@ -429,6 +622,10 @@ local function EnvoyerCourrierGagnant(nomGagnant, montantCuivre)
     SendMailNameEditBox:SetText(nomGagnant)
     SendMailSubjectEditBox:SetText(FCM_L("MAIL_SUBJECT"))
     
+    -- Remplissage du corps du message selon le type de gagnant
+    local body = isFighter and FCM_L("MAIL_BODY_FIGHTER") or FCM_L("MAIL_BODY_BETTOR")
+    SendMailBodyEditBox:SetText(body)
+    
     -- Séparation des cuivres pour les trois cases de courrier de Blizzard
     local g = math.floor(montantCuivre / 10000)
     local s = math.floor(math.mod(montantCuivre, 10000) / 100)
@@ -438,11 +635,29 @@ local function EnvoyerCourrierGagnant(nomGagnant, montantCuivre)
     SendMailMoneySilver:SetText(tostring(s))
     SendMailMoneyCopper:SetText(tostring(c))
 
-    -- Met à jour les calculs internes de Blizzard pour l'affichage des taxes d'envoi (30 PC)
-    SendMailMoney_Update()
-
     DEFAULT_CHAT_FRAME:AddMessage(FCM_L("CHAT_MSG_PREFIX") .. string.format(FCM_L("INFO_MAIL_READY"), nomGagnant, FormaterArgent(montantCuivre)))
     return true
+end
+
+----------------------------------------------------
+-- INTERCEPTION DE L'ENVOI DE COURRIER (HOOK)
+----------------------------------------------------
+FCM_PendingPayment = nil
+
+local original_SendMail = SendMail
+function SendMail(mailTo, mailSubject, mailBody)
+    if FCM_PendingPayment and mailTo and string.lower(mailTo) == string.lower(FCM_PendingPayment.winner) then
+        if FCM_PendingPayment.type == "histo" then
+            if not FCM_PendingPayment.match.gainsPayes then FCM_PendingPayment.match.gainsPayes = {} end
+            FCM_PendingPayment.match.gainsPayes[FCM_PendingPayment.winner] = true
+        elseif FCM_PendingPayment.type == "postal" then
+            if not FCM_Database.gainsPayes then FCM_Database.gainsPayes = {} end
+            FCM_Database.gainsPayes[FCM_PendingPayment.winner] = true
+        end
+        FCM_PendingPayment = nil
+        if FCM_MainFrame and type(FCM_MainFrame.RefreshUI) == "function" then FCM_MainFrame.RefreshUI() end
+    end
+    original_SendMail(mailTo, mailSubject, mailBody)
 end
 
 ----------------------------------------------------
@@ -471,6 +686,25 @@ btnLang:SetWidth(30) btnLang:SetHeight(20)
 btnLang:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -10)
 btnLang:SetScript("OnClick", function()
     FCM_Database.lang = (FCM_Database.lang == "fr") and "en" or "fr"
+    f.RefreshUI()
+end)
+
+local btnScale = CreateFrame("Button", "FCM_BtnScale", f, "UIPanelButtonTemplate")
+btnScale:SetWidth(20) btnScale:SetHeight(20)
+btnScale:SetPoint("LEFT", btnLang, "RIGHT", 5, 0)
+btnScale:SetScript("OnClick", function()
+    FCM_Database.scale = (FCM_Database.scale == 1.0) and 0.8 or 1.0
+    f:SetScale(FCM_Database.scale)
+    f.RefreshUI()
+end)
+
+local btnSilent = CreateFrame("Button", "FCM_BtnSilent", f, "UIPanelButtonTemplate")
+btnSilent:SetWidth(30) btnSilent:SetHeight(20)
+btnSilent:SetPoint("LEFT", btnScale, "RIGHT", 5, 0)
+btnSilent:SetScript("OnClick", function()
+    FCM_Database.silentMode = not FCM_Database.silentMode
+    local statusMsg = FCM_Database.silentMode and FCM_L("MSG_SILENT_ON") or FCM_L("MSG_SILENT_OFF")
+    DEFAULT_CHAT_FRAME:AddMessage(FCM_L("CHAT_INFO_PREFIX") .. statusMsg)
     f.RefreshUI()
 end)
 
@@ -592,12 +826,16 @@ local line = f:CreateTexture(nil, "BACKGROUND")
 line:SetPoint("TOPLEFT", f, "TOPLEFT", 20, -210)
 line:SetWidth(520) line:SetHeight(4) line:SetTexture(0.5, 0.05, 0.05, 0.8) -- Ligne plus épaisse et sombre
 
+local btnAnnounce = CreateFrame("Button", "FCM_BtnAnnounce", f, "UIPanelButtonTemplate")
+btnAnnounce:SetWidth(200) btnAnnounce:SetHeight(24) btnAnnounce:SetPoint("TOP", f, "TOP", 0, -218)
+btnAnnounce:SetText("Annoncer les Cotes")
+
 -- --- GRILLE ENTRÉE ARGENT ---
-local lblMontant = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-lblMontant:SetPoint("TOPLEFT", f, "TOPLEFT", 35, -235) lblMontant:SetText("Mise :")
+local lblMontant = f:CreateFontString("FCM_LblMontant", "OVERLAY", "GameFontNormal")
+lblMontant:SetPoint("TOPLEFT", f, "TOPLEFT", 35, -290) lblMontant:SetText("Mise :")
 
 local ebG = CreateFrame("EditBox", "FCM_InputGold", f, "InputBoxTemplate")
-ebG:SetWidth(40) ebG:SetHeight(20) ebG:SetPoint("TOPLEFT", f, "TOPLEFT", 90, -233)
+ebG:SetWidth(40) ebG:SetHeight(20) ebG:SetPoint("TOPLEFT", f, "TOPLEFT", 90, -288)
 ebG:SetNumeric(true) ebG:SetMaxLetters(4) ebG:SetAutoFocus(false) ebG:SetText("1")
 local lblG = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 lblG:SetPoint("LEFT", ebG, "RIGHT", 2, 0) lblG:SetText("|cffffd100G|r")
@@ -605,12 +843,12 @@ local texG = f:CreateTexture(nil, "OVERLAY")
 texG:SetTexture("Interface\\MoneyFrame\\UI-GoldIcon")
 texG:SetWidth(14); texG:SetHeight(14); texG:SetPoint("LEFT", lblG, "RIGHT", 2, -1)
 
-local btnPlusG = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+local btnPlusG = CreateFrame("Button", "FCM_BtnPlusG", f, "UIPanelButtonTemplate")
 btnPlusG:SetWidth(24) btnPlusG:SetHeight(14) btnPlusG:SetPoint("BOTTOM", ebG, "TOP", 0, 2)
-btnPlusG:SetText("+") btnPlusG:SetScript("OnClick", function() AjusterValeurCase(ebG, 1) end)
-local btnMinusG = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+btnPlusG:SetText("+") btnPlusG:SetScript("OnClick", function() AjusterValeurCase(FCM_InputGold, 1) end)
+local btnMinusG = CreateFrame("Button", "FCM_BtnMinusG", f, "UIPanelButtonTemplate")
 btnMinusG:SetWidth(24) btnMinusG:SetHeight(14) btnMinusG:SetPoint("TOP", ebG, "BOTTOM", 0, -2)
-btnMinusG:SetText("-") btnMinusG:SetScript("OnClick", function() AjusterValeurCase(ebG, -1) end)
+btnMinusG:SetText("-") btnMinusG:SetScript("OnClick", function() AjusterValeurCase(FCM_InputGold, -1) end)
 
 local ebS = CreateFrame("EditBox", "FCM_InputSilver", f, "InputBoxTemplate")
 ebS:SetWidth(30) ebS:SetHeight(20) ebS:SetPoint("LEFT", texG, "RIGHT", 35, 0)
@@ -621,12 +859,12 @@ local texS = f:CreateTexture(nil, "OVERLAY")
 texS:SetTexture("Interface\\MoneyFrame\\UI-SilverIcon")
 texS:SetWidth(14); texS:SetHeight(14); texS:SetPoint("LEFT", lblS, "RIGHT", 2, -1)
 
-local btnPlusS = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+local btnPlusS = CreateFrame("Button", "FCM_BtnPlusS", f, "UIPanelButtonTemplate")
 btnPlusS:SetWidth(24) btnPlusS:SetHeight(14) btnPlusS:SetPoint("BOTTOM", ebS, "TOP", 0, 2)
-btnPlusS:SetText("+") btnPlusS:SetScript("OnClick", function() AjusterValeurCase(ebS, 1) end)
-local btnMinusS = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+btnPlusS:SetText("+") btnPlusS:SetScript("OnClick", function() AjusterValeurCase(FCM_InputSilver, 1) end)
+local btnMinusS = CreateFrame("Button", "FCM_BtnMinusS", f, "UIPanelButtonTemplate")
 btnMinusS:SetWidth(24) btnMinusS:SetHeight(14) btnMinusS:SetPoint("TOP", ebS, "BOTTOM", 0, -2)
-btnMinusS:SetText("-") btnMinusS:SetScript("OnClick", function() AjusterValeurCase(ebS, -1) end)
+btnMinusS:SetText("-") btnMinusS:SetScript("OnClick", function() AjusterValeurCase(FCM_InputSilver, -1) end)
 
 local ebC = CreateFrame("EditBox", "FCM_InputCopper", f, "InputBoxTemplate")
 ebC:SetWidth(30) ebC:SetHeight(20) ebC:SetPoint("LEFT", texS, "RIGHT", 35, 0)
@@ -637,12 +875,12 @@ local texC = f:CreateTexture(nil, "OVERLAY")
 texC:SetTexture("Interface\\MoneyFrame\\UI-CopperIcon")
 texC:SetWidth(14); texC:SetHeight(14); texC:SetPoint("LEFT", lblC, "RIGHT", 2, -1)
 
-local btnPlusC = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+local btnPlusC = CreateFrame("Button", "FCM_BtnPlusC", f, "UIPanelButtonTemplate")
 btnPlusC:SetWidth(24) btnPlusC:SetHeight(14) btnPlusC:SetPoint("BOTTOM", ebC, "TOP", 0, 2)
-btnPlusC:SetText("+") btnPlusC:SetScript("OnClick", function() AjusterValeurCase(ebC, 1) end)
-local btnMinusC = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+btnPlusC:SetText("+") btnPlusC:SetScript("OnClick", function() AjusterValeurCase(FCM_InputCopper, 1) end)
+local btnMinusC = CreateFrame("Button", "FCM_BtnMinusC", f, "UIPanelButtonTemplate")
 btnMinusC:SetWidth(24) btnMinusC:SetHeight(14) btnMinusC:SetPoint("TOP", ebC, "BOTTOM", 0, -2)
-btnMinusC:SetText("-") btnMinusC:SetScript("OnClick", function() AjusterValeurCase(ebC, -1) end)
+btnMinusC:SetText("-") btnMinusC:SetScript("OnClick", function() AjusterValeurCase(FCM_InputCopper, -1) end)
 
 local btnTrade = CreateFrame("Button", "FCM_BtnTrade", f, "UIPanelButtonTemplate")
 btnTrade:SetWidth(110) btnTrade:SetHeight(24) btnTrade:SetPoint("LEFT", texC, "RIGHT", 35, 0)
@@ -656,7 +894,7 @@ iconMakgora:SetTexture("Interface\\Icons\\Ability_Creature_Cursed_02") -- Icône
 iconMakgora:SetAllPoints(btnMakgora)
 iconMakgora:SetVertexColor(0.3, 0.3, 0.3) -- Grisé par défaut
 btnMakgora.icon = iconMakgora
-local lblMakgora = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+local lblMakgora = f:CreateFontString("FCM_LblMakgora", "OVERLAY", "GameFontNormalSmall")
 lblMakgora:SetPoint("TOP", btnMakgora, "BOTTOM", 0, -2)
 lblMakgora:SetText("Mak'gora")
 lblMakgora:SetTextColor(0.5, 0.5, 0.5)
@@ -672,7 +910,7 @@ end)
 
 -- --- HISTORIQUE DYNAMIQUE (AVEC SCROLL) ---
 f.ScrollFrame = CreateFrame("ScrollFrame", "FCM_ScrollFrame", f, "UIPanelScrollFrameTemplate")
-f.ScrollFrame:SetPoint("TOPLEFT", f, "TOPLEFT", 25, -290)
+f.ScrollFrame:SetPoint("TOPLEFT", f, "TOPLEFT", 25, -330)
 f.ScrollFrame:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -45, 105)
 
 f.ScrollChild = CreateFrame("Frame", "FCM_ScrollChild", f.ScrollFrame)
@@ -741,11 +979,11 @@ btnPayerPostal:GetFontString():SetTextColor(0.1, 0.7, 0.1)
 f.ActiveTab = 1
 
 f.CombatElements = {
-    f.StepText, modelA, f.IconClassA, f.NomAText, f.TotalAText, f.CoteAText, btnSetA, btnWinA,
-    f.VSButton, modelB, f.IconClassB, f.NomBText, f.TotalBText, f.CoteBText, btnSetB, btnWinB,
-    line, lblMontant, ebG, lblG, texG, btnPlusG, btnMinusG,
-    ebS, lblS, texS, btnPlusS, btnMinusS, ebC, lblC, texC, btnPlusC, btnMinusC, btnTrade,
-    btnMakgora, lblMakgora,
+    f.StepText, FCM_MainFrameModelA, f.IconClassA, f.NomAText, f.TotalAText, f.CoteAText, FCM_BtnSetA, FCM_BtnWinA,
+    f.VSButton, FCM_MainFrameModelB, f.IconClassB, f.NomBText, f.TotalBText, f.CoteBText, FCM_BtnSetB, FCM_BtnWinB,
+    line, FCM_LblMontant, FCM_InputGold, lblG, texG, FCM_BtnPlusG, FCM_BtnMinusG,
+    FCM_InputSilver, lblS, texS, FCM_BtnPlusS, FCM_BtnMinusS, FCM_InputCopper, lblC, texC, FCM_BtnPlusC, FCM_BtnMinusC, FCM_BtnTrade,
+    btnMakgora, lblMakgora, btnAnnounce,
     f.ScrollFrame, f.BagButton, btnRAZ, btnPariA, btnPariB, btnPayerPostal
 }
 
@@ -822,6 +1060,22 @@ btnResetTreasury:SetScript("OnClick", function()
     StaticPopup_Show("FCM_CONFIRM_RESET_TREASURY", FCM_L("CONFIRM_RESET_TREASURY_TEXT"))
 end)
 
+local btnExportTreasury = CreateFrame("Button", "FCM_BtnExportTreasury", f.TreasuryFrame, "UIPanelButtonTemplate")
+btnExportTreasury:SetWidth(150) btnExportTreasury:SetHeight(28) 
+btnExportTreasury:SetPoint("BOTTOM", btnResetTreasury, "TOP", 0, 10)
+btnExportTreasury:SetScript("OnClick", function()
+    local msg = string.format(FCM_L("MSG_EXPORT_TREASURY"), FormaterArgentChat(FCM_Database.tresorerie or 0))
+    FCM_Announce(msg, "GUILD")
+end)
+
+local btnSetMOTD = CreateFrame("Button", "FCM_BtnSetMOTD", f.TreasuryFrame, "UIPanelButtonTemplate")
+btnSetMOTD:SetWidth(150) btnSetMOTD:SetHeight(28) 
+btnSetMOTD:SetPoint("BOTTOM", btnExportTreasury, "TOP", 0, 10)
+btnSetMOTD:SetScript("OnClick", function()
+    local msg = string.format(FCM_L("MSG_MOTD_TREASURY"), FormaterArgentChat(FCM_Database.tresorerie or 0))
+    FCM_UpdateMOTD(msg)
+end)
+
 f.Tab1:SetScript("OnClick", function() f.ActiveTab = 1; f.RefreshUI(); end)
 f.Tab2:SetScript("OnClick", function() f.ActiveTab = 2; f.RefreshUI(); end)
 f.Tab3:SetScript("OnClick", function() f.ActiveTab = 3; f.RefreshUI(); end)
@@ -837,7 +1091,7 @@ f.RulesTitle:SetPoint("TOP", f.RulesFrame, "TOP", 0, -80)
 
 f.RulesScrollFrame = CreateFrame("ScrollFrame", "FCM_RulesScrollFrame", f.RulesFrame, "UIPanelScrollFrameTemplate")
 f.RulesScrollFrame:SetPoint("TOPLEFT", f.RulesFrame, "TOPLEFT", 25, -115)
-f.RulesScrollFrame:SetPoint("BOTTOMRIGHT", f.RulesFrame, "BOTTOMRIGHT", -45, 20)
+f.RulesScrollFrame:SetPoint("BOTTOMRIGHT", f.RulesFrame, "BOTTOMRIGHT", -45, 60)
 
 f.RulesScrollChild = CreateFrame("Frame", "FCM_RulesScrollChild", f.RulesScrollFrame)
 f.RulesScrollChild:SetWidth(480)
@@ -850,6 +1104,25 @@ f.RulesText:SetJustifyH("LEFT")
 f.RulesText:SetJustifyV("TOP")
 
 f.RulesScrollFrame:SetScrollChild(f.RulesScrollChild)
+
+local btnOpenEvent = CreateFrame("Button", "FCM_BtnOpenEvent", f.RulesFrame, "UIPanelButtonTemplate")
+btnOpenEvent:SetWidth(200) btnOpenEvent:SetHeight(28) 
+btnOpenEvent:SetPoint("BOTTOMLEFT", f.RulesFrame, "BOTTOMLEFT", 30, 20)
+btnOpenEvent:GetFontString():SetTextColor(0.1, 0.7, 0.1)
+btnOpenEvent:SetScript("OnClick", function()
+    FCM_Announce(FCM_L("MSG_OPEN_EVENT_1"), "YELL")
+    FCM_Announce(FCM_L("MSG_OPEN_EVENT_2"), "YELL")
+    FCM_Announce(FCM_L("MSG_OPEN_EVENT_3"), "YELL")
+end)
+
+local btnCloseEvent = CreateFrame("Button", "FCM_BtnCloseEvent", f.RulesFrame, "UIPanelButtonTemplate")
+btnCloseEvent:SetWidth(200) btnCloseEvent:SetHeight(28) 
+btnCloseEvent:SetPoint("BOTTOMRIGHT", f.RulesFrame, "BOTTOMRIGHT", -30, 20)
+btnCloseEvent:GetFontString():SetTextColor(0.8, 0.2, 0.2)
+btnCloseEvent:SetScript("OnClick", function()
+    FCM_Announce(FCM_L("MSG_CLOSE_EVENT_1"), "YELL")
+    FCM_Announce(FCM_L("MSG_CLOSE_EVENT_2"), "YELL")
+end)
 
 f.HistoryFrame = CreateFrame("Frame", "FCM_HistoryFrame", f)
 f.HistoryFrame:SetAllPoints(f)
@@ -877,10 +1150,11 @@ btnPayerHisto:GetFontString():SetTextColor(0.1, 0.7, 0.1)
 btnPayerHisto:SetScript("OnClick", function()
     for _, match in ipairs(FCM_Database.historique or {}) do
         for pseudo, gain in pairs(match.gainsCalcules) do
+            if not match.gainsPayes then match.gainsPayes = {} end
             if not match.gainsPayes[pseudo] then
-                if EnvoyerCourrierGagnant(pseudo, gain) then
-                    match.gainsPayes[pseudo] = true
-                    f.RefreshUI()
+                local isFighter = (pseudo == match.nomA or pseudo == match.nomB)
+                if EnvoyerCourrierGagnant(pseudo, gain, isFighter) then
+                    FCM_PendingPayment = { type = "histo", match = match, winner = pseudo }
                 end
                 return
             end
@@ -907,7 +1181,7 @@ btnResetPaidHisto:SetScript("OnClick", function()
     for _, match in ipairs(FCM_Database.historique or {}) do
         local toutPaye = true
         for pseudo, gain in pairs(match.gainsCalcules) do
-            if not match.gainsPayes[pseudo] then 
+            if not match.gainsPayes or not match.gainsPayes[pseudo] then 
                 toutPaye = false
                 break
             end
@@ -962,20 +1236,36 @@ end)
 f.RefreshUI = function()
     -- Mise à jour des textes de base selon la langue
     if FCM_BtnLang then FCM_BtnLang:SetText(string.upper(FCM_Database.lang or "fr")) end
-    btnSetA:SetText(FCM_L("BTN_TARGET_A"))
-    btnSetB:SetText(FCM_L("BTN_TARGET_B"))
-    btnWinA:SetText(FCM_L("BTN_WINNER"))
-    btnWinB:SetText(FCM_L("BTN_WINNER"))
-    lblMontant:SetText(FCM_L("LBL_BET"))
-    btnTrade:SetText(FCM_L("BTN_TRADE"))
-    btnRAZ:SetText(FCM_L("BTN_RESET"))
-    btnPayerPostal:SetText(FCM_L("BTN_POSTAL"))
-    btnPayerHisto:SetText(FCM_L("BTN_PAY_HISTO"))
-    btnResetPaidHisto:SetText(FCM_L("BTN_RESET_PAID_HISTO"))
-    btnResetAllHisto:SetText(FCM_L("BTN_RESET_ALL_HISTO"))
-    btnResetHoF:SetText(FCM_L("BTN_RESET_HOF"))
-    btnResetTreasury:SetText(FCM_L("BTN_RESET_TREASURY"))
-    if lblMakgora then lblMakgora:SetText(FCM_L("BTN_MAKGORA")) end
+    if FCM_BtnSetA then FCM_BtnSetA:SetText(FCM_L("BTN_TARGET_A")) end
+    if FCM_BtnSetB then FCM_BtnSetB:SetText(FCM_L("BTN_TARGET_B")) end
+    if FCM_BtnWinA then FCM_BtnWinA:SetText(FCM_L("BTN_WINNER")) end
+    if FCM_BtnWinB then FCM_BtnWinB:SetText(FCM_L("BTN_WINNER")) end
+    FCM_LblMontant:SetText(FCM_L("LBL_BET"))
+    if FCM_BtnTrade then FCM_BtnTrade:SetText(FCM_L("BTN_TRADE")) end
+    if FCM_BtnRAZ then FCM_BtnRAZ:SetText(FCM_L("BTN_RESET")) end
+    if FCM_BtnPayerPostal then FCM_BtnPayerPostal:SetText(FCM_L("BTN_POSTAL")) end
+    if FCM_BtnPayerHisto then FCM_BtnPayerHisto:SetText(FCM_L("BTN_PAY_HISTO")) end
+    if FCM_BtnResetPaidHisto then FCM_BtnResetPaidHisto:SetText(FCM_L("BTN_RESET_PAID_HISTO")) end
+    if FCM_BtnResetAllHisto then FCM_BtnResetAllHisto:SetText(FCM_L("BTN_RESET_ALL_HISTO")) end
+    if FCM_BtnResetHoF then FCM_BtnResetHoF:SetText(FCM_L("BTN_RESET_HOF")) end
+    if FCM_BtnResetTreasury then FCM_BtnResetTreasury:SetText(FCM_L("BTN_RESET_TREASURY")) end
+    if FCM_BtnExportTreasury then FCM_BtnExportTreasury:SetText(FCM_L("BTN_EXPORT_TREASURY")) end
+    if FCM_BtnSetMOTD then FCM_BtnSetMOTD:SetText(FCM_L("BTN_SET_MOTD")) end
+    if FCM_BtnAnnounce then FCM_BtnAnnounce:SetText(FCM_L("BTN_ANNOUNCE")) end
+    if FCM_BtnOpenEvent then FCM_BtnOpenEvent:SetText(FCM_L("BTN_OPEN_EVENT")) end
+    if FCM_BtnCloseEvent then FCM_BtnCloseEvent:SetText(FCM_L("BTN_CLOSE_EVENT")) end
+    if FCM_LblMakgora then FCM_LblMakgora:SetText(FCM_L("BTN_MAKGORA")) end
+    
+    if FCM_BtnScale then FCM_BtnScale:SetText((FCM_Database.scale == 1.0) and "-" or "+") end
+    f:SetScale(FCM_Database.scale or 1.0)
+    
+    if FCM_BtnSilent then
+        if FCM_Database.silentMode then
+            FCM_BtnSilent:SetText("|cffff0000S|r") -- S en rouge pour Silent
+        else
+            FCM_BtnSilent:SetText("|cff00ff00V|r") -- V en vert pour Voice
+        end
+    end
 
     -- GESTION DES ONGLETS
     if f.ActiveTab == 5 then
@@ -1037,7 +1327,7 @@ f.RefreshUI = function()
                 local hasGains = false
                 for pseudo, gain in pairs(match.gainsCalcules) do
                     hasGains = true
-                    local statut = match.gainsPayes[pseudo] and FCM_L("STATUS_PAID") or FCM_L("STATUS_UNPAID")
+                    local statut = (match.gainsPayes and match.gainsPayes[pseudo]) and FCM_L("STATUS_PAID") or FCM_L("STATUS_UNPAID")
                     local pseudoAffiche = pseudo
                     if (pseudo == match.nomA or pseudo == match.nomB) and string.find(match.vainqueur, pseudo, 1, true) == 1 then
                         pseudoAffiche = string.format(FCM_L("FIGHTER_TAG"), pseudo)
@@ -1145,7 +1435,7 @@ f.RefreshUI = function()
     btnPariB:SetText(FCM_L("TXT_BET_ON") .. nomCourtB)
 
     local totalGlobal = FCM_Database.totalA + FCM_Database.totalB
-    local tauxTaxe = FCM_Database.isMakgora and 0.30 or 0.15
+    local tauxTaxe = FCM_Database.isMakgora and 0.33 or 0.15
     local cagnotteApresTaxe = totalGlobal * (1 - tauxTaxe)
     local coteA, coteB = 1.00, 1.00
     if FCM_Database.totalA > 0 then coteA = cagnotteApresTaxe / FCM_Database.totalA end
@@ -1159,64 +1449,68 @@ f.RefreshUI = function()
         f.StepText:SetText(FCM_L("STEP1"))
         f.BagButton:Hide()
         f.VSIcon:SetVertexColor(0.25, 0.25, 0.25) -- Grisé au départ
-        btnRAZ:Show()
+        FCM_BtnRAZ:Show()
         
-        btnSetA:Show() btnSetB:Show()
-        btnWinA:Hide() btnWinB:Hide()
-        btnPariA:Hide() btnPariB:Hide() btnPayerPostal:Hide()
+        FCM_BtnSetA:Show() FCM_BtnSetB:Show()
+        FCM_BtnWinA:Hide() FCM_BtnWinB:Hide()
+        FCM_BtnPariA:Hide() FCM_BtnPariB:Hide() FCM_BtnPayerPostal:Hide()
+        FCM_BtnAnnounce:Hide()
         
-        btnPlusG:Hide() btnMinusG:Hide() btnPlusS:Hide() btnMinusS:Hide() btnPlusC:Hide() btnMinusC:Hide()
-        ebG:Hide() ebS:Hide() ebC:Hide()
-        btnTrade:Hide()
+        FCM_BtnPlusG:Hide() FCM_BtnMinusG:Hide() FCM_BtnPlusS:Hide() FCM_BtnMinusS:Hide() FCM_BtnPlusC:Hide() FCM_BtnMinusC:Hide()
+        FCM_InputGold:Hide() FCM_InputSilver:Hide() FCM_InputCopper:Hide()
+        FCM_BtnTrade:Hide()
 
     elseif FCM_Database.etape == 2 then
         f.StepText:SetText(FCM_L("STEP2"))
         f.BagButton:Show()
         f.BagIcon:SetVertexColor(0.25, 0.25, 0.25) -- Grisé
         f.VSIcon:SetVertexColor(1.0, 1.0, 1.0) -- En couleurs
-        btnRAZ:Show()
+        FCM_BtnRAZ:Show()
         
-        btnSetA:Hide() btnSetB:Hide()
-        btnWinA:Hide() btnWinB:Hide()
-        btnPariA:Show() btnPariB:Show() btnPayerPostal:Hide()
+        FCM_BtnSetA:Hide() FCM_BtnSetB:Hide()
+        FCM_BtnWinA:Hide() FCM_BtnWinB:Hide()
+        FCM_BtnPariA:Show() FCM_BtnPariB:Show() FCM_BtnPayerPostal:Hide()
+        FCM_BtnAnnounce:Show()
         
-        btnPlusG:Show() btnMinusG:Show() btnPlusS:Show() btnMinusS:Show() btnPlusC:Show() btnMinusC:Show()
-        ebG:Show() ebS:Show() ebC:Show()
-        btnTrade:Show()
+        FCM_BtnPlusG:Show() FCM_BtnMinusG:Show() FCM_BtnPlusS:Show() FCM_BtnMinusS:Show() FCM_BtnPlusC:Show() FCM_BtnMinusC:Show()
+        FCM_InputGold:Show() FCM_InputSilver:Show() FCM_InputCopper:Show()
+        FCM_BtnTrade:Show()
 
     elseif FCM_Database.etape == 3 then
         f.StepText:SetText(FCM_L("STEP3"))
         f.BagButton:Show()
         f.BagIcon:SetVertexColor(1.0, 1.0, 1.0) -- En couleurs
         f.VSIcon:SetVertexColor(1.0, 1.0, 1.0)
-        btnRAZ:Show()
+        FCM_BtnRAZ:Show()
         
-        btnSetA:Hide() btnSetB:Hide()
-        btnPariA:Hide() btnPariB:Hide() btnPayerPostal:Hide()
+        FCM_BtnSetA:Hide() FCM_BtnSetB:Hide()
+        FCM_BtnPariA:Hide() FCM_BtnPariB:Hide() FCM_BtnPayerPostal:Hide()
+        FCM_BtnAnnounce:Hide()
         
-        btnPlusG:Hide() btnMinusG:Hide() btnPlusS:Hide() btnMinusS:Hide() btnPlusC:Hide() btnMinusC:Hide()
-        ebG:Hide() ebS:Hide() ebC:Hide()
-        btnTrade:Hide()
+        FCM_BtnPlusG:Hide() FCM_BtnMinusG:Hide() FCM_BtnPlusS:Hide() FCM_BtnMinusS:Hide() FCM_BtnPlusC:Hide() FCM_BtnMinusC:Hide()
+        FCM_InputGold:Hide() FCM_InputSilver:Hide() FCM_InputCopper:Hide()
+        FCM_BtnTrade:Hide()
         
-        btnWinA:Show() btnWinB:Show()
+        FCM_BtnWinA:Show() FCM_BtnWinB:Show()
 
     elseif FCM_Database.etape == 4 then
         f.StepText:SetText(FCM_L("STEP4"))
         f.BagButton:Show()
         f.BagIcon:SetVertexColor(1.0, 1.0, 1.0) -- En couleurs
         f.VSIcon:SetVertexColor(1.0, 1.0, 1.0)
-        btnRAZ:Show()
-        btnRAZ:SetText(FCM_L("BTN_MATCH_DONE"))
+        FCM_BtnRAZ:Show()
+        FCM_BtnRAZ:SetText(FCM_L("BTN_MATCH_DONE"))
         
-        btnSetA:Hide() btnSetB:Hide()
-        btnWinA:Hide() btnWinB:Hide()
-        btnPariA:Hide() btnPariB:Hide()
+        FCM_BtnSetA:Hide() FCM_BtnSetB:Hide()
+        FCM_BtnWinA:Hide() FCM_BtnWinB:Hide()
+        FCM_BtnPariA:Hide() FCM_BtnPariB:Hide()
+        FCM_BtnAnnounce:Hide()
         
-        btnPlusG:Hide() btnMinusG:Hide() btnPlusS:Hide() btnMinusS:Hide() btnPlusC:Hide() btnMinusC:Hide()
-        ebG:Hide() ebS:Hide() ebC:Hide()
-        btnTrade:Hide()
+        FCM_BtnPlusG:Hide() FCM_BtnMinusG:Hide() FCM_BtnPlusS:Hide() FCM_BtnMinusS:Hide() FCM_BtnPlusC:Hide() FCM_BtnMinusC:Hide()
+        FCM_InputGold:Hide() FCM_InputSilver:Hide() FCM_InputCopper:Hide()
+        FCM_BtnTrade:Hide()
         
-        btnPayerPostal:Hide() 
+        FCM_BtnPayerPostal:Hide()
     end
 
     local txtTitle = ""
@@ -1296,6 +1590,20 @@ f.VSButton:SetScript("OnClick", function()
         end
         FCM_Database.etape = 2
         f.RefreshUI()
+            
+            -- Envoi de l'annonce automatique au verrouillage des combattants
+            local introA = GenererIntroFighter(FCM_Database.nomA, FCM_Database.classA, FCM_Database.levelA)
+            local introB = GenererIntroFighter(FCM_Database.nomB, FCM_Database.classB, FCM_Database.levelB)
+            
+            local variants = FCM_Database.isMakgora and FCM_L("ANNOUNCE_MAKGORA_VARIANTS") or FCM_L("ANNOUNCE_CLASSIC_VARIANTS")
+            local msg = "Les paris sont ouverts ! " .. introA .. " VS " .. introB
+            
+            if type(variants) == "table" and table.getn(variants) > 0 then
+                local randIndex = math.random(1, table.getn(variants))
+                msg = string.format(variants[randIndex], introA, introB)
+            end
+            
+            FCM_Announce(msg, "YELL")
     end
 end)
 
@@ -1303,10 +1611,24 @@ f.BagButton:SetScript("OnClick", function()
     if FCM_Database.etape == 2 then
         FCM_Database.etape = 3
         f.RefreshUI()
+        
+        -- Envoi de l'annonce automatique de fermeture des paris
+        local variantsClosed = FCM_L("ANNOUNCE_BETS_CLOSED_VARIANTS")
+        if type(variantsClosed) == "table" and table.getn(variantsClosed) > 0 then
+            local randIndex = math.random(1, table.getn(variantsClosed))
+            FCM_Announce(variantsClosed[randIndex], "YELL")
+        end
     end
 end)
 
 btnRAZ:SetScript("OnClick", function()
+    if FCM_Database.etape == 4 then
+        local variantsNext = FCM_L("ANNOUNCE_NEXT_MATCH_VARIANTS")
+        if type(variantsNext) == "table" and table.getn(variantsNext) > 0 then
+            local randIndex = math.random(1, table.getn(variantsNext))
+            FCM_Announce(variantsNext[randIndex], "YELL")
+        end
+    end
     ResetClub()
 end)
 
@@ -1348,6 +1670,23 @@ btnSetB:SetScript("OnClick", function()
     end
 end)
 
+btnAnnounce:SetScript("OnClick", function()
+    local totalGlobal = FCM_Database.totalA + FCM_Database.totalB
+    local tauxTaxe = FCM_Database.isMakgora and 0.33 or 0.15
+    local cagnotteApresTaxe = totalGlobal * (1 - tauxTaxe)
+    local coteA, coteB = 1.00, 1.00
+    if FCM_Database.totalA > 0 then coteA = cagnotteApresTaxe / FCM_Database.totalA end
+    if FCM_Database.totalB > 0 then coteB = cagnotteApresTaxe / FCM_Database.totalB end
+    if coteA < 1.00 then coteA = 1.00 end 
+    if coteB < 1.00 then coteB = 1.00 end
+    
+    local msg = string.format(FCM_L("ANNOUNCE_ODDS_MSG"), 
+        FCM_Database.nomA, coteA, FormaterArgentChat(FCM_Database.totalA), 
+        FCM_Database.nomB, coteB, FormaterArgentChat(FCM_Database.totalB))
+        
+    FCM_Announce(msg, "YELL")
+end)
+
 btnPariA:SetScript("OnClick", function() EnregistrerPari("A", ebG:GetText(), ebS:GetText(), ebC:GetText()) end)
 btnPariB:SetScript("OnClick", function() EnregistrerPari("B", ebG:GetText(), ebS:GetText(), ebC:GetText()) end)
 btnWinA:SetScript("OnClick", function() CalculerGains("A") end)
@@ -1375,10 +1714,9 @@ btnPayerPostal:SetScript("OnClick", function()
     end
     
     if nextWinner then
-        if EnvoyerCourrierGagnant(nextWinner, nextAmount) then
-            if not FCM_Database.gainsPayes then FCM_Database.gainsPayes = {} end
-            FCM_Database.gainsPayes[nextWinner] = true
-            f.RefreshUI()
+        local isFighter = (nextWinner == FCM_Database.nomA or nextWinner == FCM_Database.nomB)
+        if EnvoyerCourrierGagnant(nextWinner, nextAmount, isFighter) then
+            FCM_PendingPayment = { type = "postal", winner = nextWinner }
         end
     else
         DEFAULT_CHAT_FRAME:AddMessage(FCM_L("CHAT_SUCCESS_PREFIX") .. FCM_L("SUCCESS_ALL_MAIL_PREPARED"))
